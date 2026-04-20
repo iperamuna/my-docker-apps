@@ -1,0 +1,64 @@
+# ==============================================================================
+# Listmonk + PostgreSQL — Reference docker-compose.yml
+# SMTP: Mailu internal network, no SSL/TLS (no handshake overhead)
+# ==============================================================================
+# This file is a reference/template. setup-listmonk.sh generates the final
+# version with your actual values on the server.
+# To use manually, copy this to your server and fill in env vars.
+# ==============================================================================
+
+services:
+
+  listmonk:
+    image: listmonk/listmonk:latest
+    container_name: listmonk-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9000:9000"      # Only bind localhost — Nginx handles public
+    volumes:
+      - ./config.toml:/listmonk/config.toml:ro
+      - ./uploads:/listmonk/uploads
+      - ./static:/listmonk/static
+    environment:
+      # DB connection — overrides config.toml db section
+      - LISTMONK_db__host=listmonk-db
+      - LISTMONK_db__port=5432
+      - LISTMONK_db__user=listmonk
+      - LISTMONK_db__password=${POSTGRES_PASSWORD}
+      - LISTMONK_db__database=listmonk
+      - LISTMONK_db__ssl_mode=disable
+    depends_on:
+      listmonk-db:
+        condition: service_healthy
+    command: ["./listmonk", "--config", "/listmonk/config.toml"]
+    networks:
+      - listmonk_internal
+      - mailu_default        # ← Joins Mailu's network for internal SMTP access
+
+  listmonk-db:
+    image: postgres:16-alpine
+    container_name: listmonk-db
+    restart: unless-stopped
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=listmonk
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=listmonk
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U listmonk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - listmonk_internal    # DB stays on internal network only (no Mailu access needed)
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+# listmonk_internal: private bridge between listmonk app and its postgres
+# mailu_default:     Mailu's external Docker network — allows Listmonk to reach
+#                    the 'front' container on port 25 WITHOUT SSL handshake
+networks:
+  listmonk_internal:
+    driver: bridge
+  mailu_default:
+    external: true           # Must already exist (created by Mailu's compose stack)

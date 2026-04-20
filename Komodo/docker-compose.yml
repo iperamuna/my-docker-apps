@@ -1,0 +1,24 @@
+services:
+  komodo:
+    image: ghcr.io/moghtech/komodo-core:2
+    container_name: komodo-core
+    restart: always
+    ports:
+      - "9120:9120"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:5
+    container_name: komodo-mongo
+    restart: always
+    volumes:
+      - ./mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${KOMODO_DATABASE_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${KOMODO_DATABASE_PASSWORD}
