@@ -19,6 +19,7 @@ echo "--------------------------"
 # 1. Detect Status
 ANTIVIRUS_STATUS=$(grep "ANTIVIRUS=" $ENV_FILE | cut -d= -f2)
 FTS_STATUS=$(grep "FTS=" $ENV_FILE | cut -d= -f2)
+WEBDAV_STATUS=$(grep "WEBDAV=" $ENV_FILE | cut -d= -f2)
 [[ -p $MAILU_DIR/docker-compose.yml ]] || touch $MAILU_DIR/docker-compose.yml # Safety check
 
 # Detect Tika (FTS Attachments)
@@ -28,6 +29,7 @@ if grep -q "fetchmail:" $COMPOSE_FILE; then FETCHMAIL_STATUS="enabled"; else FET
 
 [[ "$ANTIVIRUS_STATUS" == "none" ]] && AV_COLOR=$RED || AV_COLOR=$GREEN
 [[ "$FTS_STATUS" == "none" ]] && FTS_COLOR=$RED || FTS_COLOR=$GREEN
+[[ "${WEBDAV_STATUS:-none}" == "none" ]] && WEBDAV_COLOR=$RED || WEBDAV_COLOR=$GREEN
 [[ "$TIKA_STATUS" == "disabled" ]] && TIKA_COLOR=$RED || TIKA_COLOR=$GREEN
 [[ "$FETCHMAIL_STATUS" == "disabled" ]] && FETCHMAIL_COLOR=$RED || FETCHMAIL_COLOR=$GREEN
 
@@ -35,6 +37,7 @@ echo -e "1. ClamAV Antivirus: ${AV_COLOR}${ANTIVIRUS_STATUS}${NC}"
 echo -e "2. Full-Text Search: ${FTS_COLOR}${FTS_STATUS}${NC}"
 echo -e "3. Attachment Indexing (Tika): ${TIKA_COLOR}${TIKA_STATUS}${NC}"
 echo -e "4. External Fetchmail: ${FETCHMAIL_COLOR}${FETCHMAIL_STATUS}${NC}"
+echo -e "5. WebDAV / Calendar (Radicale): ${WEBDAV_COLOR}${WEBDAV_STATUS:-none}${NC}"
 echo "--------------------------"
 
 echo "What would you like to do?"
@@ -42,6 +45,7 @@ echo "a) Toggle ClamAV (Enable/Disable)"
 echo "b) Toggle Full-Text Search (Enable/Disable)"
 echo "c) Toggle Attachment Indexing (Apache Tika)"
 echo "d) Toggle External Fetchmail"
+echo "e) Toggle WebDAV / Calendar (Radicale)"
 echo "q) Quit"
 read -p "Selection: " CHOICE
 
@@ -51,15 +55,8 @@ case $CHOICE in
             echo "Enabling ClamAV... (Requires 2GB+ extra RAM)"
             sed -i 's/ANTIVIRUS=none/ANTIVIRUS=clamav/' $ENV_FILE
             if ! grep -q "antivirus:" $COMPOSE_FILE; then
-                cat >> $COMPOSE_FILE <<EOF
-
-  antivirus:
-    image: ghcr.io/mailu/clamav:2024.06
-    restart: always
-    env_file: .env
-    volumes:
-      - ./data/filter:/var/lib/clamav
-EOF
+                sed -i '/^networks:/i \
+  antivirus:\n    image: clamav/clamav:latest\n    restart: always\n    env_file: .env\n    volumes:\n      - ./data/filter:/var/lib/clamav\n' $COMPOSE_FILE
             fi
         else
             echo "Disabling ClamAV..."
@@ -79,12 +76,8 @@ EOF
         if [[ "$TIKA_STATUS" == "disabled" ]]; then
             echo "Enabling Attachment Indexing (Tika)..."
             if ! grep -q "fts_attachments:" $COMPOSE_FILE; then
-                cat >> $COMPOSE_FILE <<EOF
-
-  fts_attachments:
-    image: apache/tika:latest-full
-    restart: always
-EOF
+                sed -i '/^networks:/i \
+  fts_attachments:\n    image: apache/tika:latest-full\n    restart: always\n' $COMPOSE_FILE
             fi
         else
             echo "Disabling Attachment Indexing..."
@@ -95,21 +88,34 @@ EOF
         if [[ "$FETCHMAIL_STATUS" == "disabled" ]]; then
             echo "Enabling Fetchmail..."
             if ! grep -q "fetchmail:" $COMPOSE_FILE; then
-                cat >> $COMPOSE_FILE <<EOF
-
-  fetchmail:
-    image: ghcr.io/mailu/fetchmail:2024.06
-    restart: always
-    env_file: .env
-    volumes:
-      - ./data:/data
-    depends_on:
-      - redis
-EOF
+                sudo touch /opt/mailu/data/fetchids 2>/dev/null || touch /opt/mailu/data/fetchids
+                sudo chown 101:101 /opt/mailu/data/fetchids 2>/dev/null || true
+                sudo chmod 600 /opt/mailu/data/fetchids 2>/dev/null || true
+                
+                sed -i '/^networks:/i \
+  fetchmail:\n    image: ghcr.io/mailu/fetchmail:2024.06\n    restart: always\n    env_file: .env\n    volumes:\n      - ./data:/data\n    depends_on:\n      - redis\n' $COMPOSE_FILE
             fi
         else
             echo "Disabling Fetchmail..."
             echo "Note: Disabling Fetchmail requires manual removal from docker-compose.yml."
+        fi
+        ;;
+    e)
+        if [[ "${WEBDAV_STATUS:-none}" == "none" ]]; then
+            echo "Enabling WebDAV / Calendar (Radicale)..."
+            if grep -q "WEBDAV=" $ENV_FILE; then
+                sed -i 's/WEBDAV.*/WEBDAV=radicale/' $ENV_FILE
+            else
+                echo "WEBDAV=radicale" >> $ENV_FILE
+            fi
+            if ! grep -q "webdav:" $COMPOSE_FILE; then
+                sed -i '/^networks:/i \
+  webdav:\n    image: ghcr.io/mailu/radicale:2024.06\n    restart: always\n    env_file: .env\n    volumes:\n      - ./data:/data\n' $COMPOSE_FILE
+            fi
+        else
+            echo "Disabling WebDAV / Calendar..."
+            sed -i 's/WEBDAV=.*/WEBDAV=none/' $ENV_FILE
+            echo "Note: Disabling WebDAV requires manual removal of 'webdav:' from docker-compose.yml."
         fi
         ;;
     q) exit 0 ;;
