@@ -14,8 +14,9 @@ All provisioning is done through idempotent `setup-*.sh` scripts that can be re-
 - [Services](#-services)
   - [Mailu — Mail Server](#-mailu--mail-server)
   - [Listmonk — Newsletter](#-listmonk--newsletter)
-  - [AppFlowy — Workspace](#-appflowy--workspace)
-  - [Komodo — Server Automation](#-komodo--server-automation)
+- [ ] [AppFlowy — Workspace](#-appflowy--workspace)
+- [ ] [GlitchTip — Error Tracking](#-glitchtip--error-tracking)
+- [ ] [Komodo — Server Automation](#-komodo--server-automation)
   - [Grafana / Prometheus — Monitoring](#-grafana--prometheus--monitoring)
   - [Uptime Kuma — Status Page](#-uptime-kuma--status-page)
 - [Managing Services](#-managing-services)
@@ -30,6 +31,7 @@ All provisioning is done through idempotent `setup-*.sh` scripts that can be re-
 | **Mailu** | [mail.ravact.com](https://mail.ravact.com) | Full mail server stack (IMAP/SMTP/POP3, Webmail, Spam, AV) | [./Mailu](./Mailu) |
 | **Listmonk** | [newsletter.ravact.com](https://newsletter.ravact.com) | High-performance mass newsletter & transactional email | [./Listmonk](./Listmonk) |
 | **AppFlowy** | [af.siyalude.io](https://af.siyalude.io) | Self-hosted team workspace & knowledge base | [./AppFlowy](./AppFlowy) |
+| **GlitchTip** | [gt.siyalude.io](https://gt.siyalude.io) | Open source error tracking & uptime monitoring | [./GlitchTip](./GlitchTip) |
 | **Komodo Core** | [komodo.ravact.com](https://komodo.ravact.com) | Advanced server automation & deployment dashboard | [./Komodo](./Komodo) |
 | **Grafana / Prometheus** | [monitor.ravact.com](https://monitor.ravact.com) | Hardware & container metrics visualization | [./Grafana](./Grafana) |
 | **Uptime Kuma** | [uptime.siyalude.io](https://uptime.siyalude.io) | Application status monitoring & alerting | [./Uptime-kuma](./Uptime-kuma) |
@@ -184,6 +186,31 @@ The admin account needs the `supabase_admin` role. See the README for the fix SQ
 
 ---
 
+### 🐞 GlitchTip — Error Tracking
+
+**Directory:** [`./GlitchTip`](./GlitchTip)
+**URL:** [gt.siyalude.io](https://gt.siyalude.io)
+**Install Path (server):** `/opt/glitchtip`
+
+GlitchTip is an open-source, Sentry-compatible error tracking platform. It includes integrated uptime monitoring and log ingestion.
+
+#### Deploy / Re-provision
+```bash
+rsync -avz ./GlitchTip/ iperamuna:/opt/glitchtip/
+ssh iperamuna "sudo bash /opt/glitchtip/setup-glitchtip.sh"
+```
+
+#### Key Files
+
+| File | Purpose |
+|---|---|
+| `setup-glitchtip.sh` | Automated installer: Docker, Nginx, SSL |
+| `change-config.sh` | Configuration modifier for Uptime/Logs/SMTP |
+| `docker-compose.yml` | GlitchTip + Postgres + Valkey definition |
+| `.env.example` | Reference environment variables |
+
+---
+
 ### ⚙️ Komodo — Server Automation
 
 **Directory:** [`./Komodo`](./Komodo)
@@ -303,6 +330,7 @@ ssh iperamuna "cd /opt/<service> && docker compose down"
 | Mailu IMAP/POP3 | `143`, `993`, `110`, `995` | Direct (host) | — |
 | Listmonk | `9000` | `127.0.0.1:9000` → Nginx | `newsletter.ravact.com` |
 | AppFlowy | `80` (nginx container) | `127.0.0.1:…` → Nginx | `af.siyalude.io` |
+| GlitchTip | `8000` | `127.0.0.1:8000` → Nginx | `gt.siyalude.io` |
 | Komodo | `9120` | `127.0.0.1:9120` → Nginx | `komodo.ravact.com` |
 | Grafana | `3000` | `127.0.0.1:3000` → Nginx | `monitor.ravact.com` |
 | Uptime Kuma | `3001` | `127.0.0.1:3001` → Nginx | `uptime.siyalude.io` |
