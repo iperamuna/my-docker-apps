@@ -1,0 +1,40 @@
+services:
+  server:
+    image: invoiceninja/invoiceninja-octane:latest
+    container_name: invoiceninja-app
+    env_file: .env
+    restart: always
+    volumes:
+      - ./storage:/app/storage:rw
+      - app-cache:/app/bootstrap/cache:rw
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "127.0.0.1:${APP_PORT:-9121}:8000"
+    networks:
+      - invoiceninja
+
+  db:
+    image: mariadb:10.11
+    container_name: invoiceninja-db
+    restart: always
+    env_file: .env
+    volumes:
+      - ./docker/mysql/data:/var/lib/mysql:rw
+    networks:
+      - invoiceninja
+
+  redis:
+    image: redis:alpine
+    container_name: invoiceninja-redis
+    restart: always
+    networks:
+      - invoiceninja
+
+networks:
+  invoiceninja:
+    driver: bridge
+
+volumes:
+  app-cache:
