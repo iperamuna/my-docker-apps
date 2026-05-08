@@ -108,6 +108,12 @@ case $CHOICE in
             else
                 echo "WEBDAV=radicale" >> $ENV_FILE
             fi
+            # Enable Roundcube Plugins for Calendar/Contacts
+            if grep -q "ROUNDCUBE_PLUGINS=" $ENV_FILE; then
+                sed -i 's/ROUNDCUBE_PLUGINS=.*/ROUNDCUBE_PLUGINS=archive,zipdownload,managesieve,enigma,carddav,calendar/' $ENV_FILE
+            else
+                echo "ROUNDCUBE_PLUGINS=archive,zipdownload,managesieve,enigma,carddav,calendar" >> $ENV_FILE
+            fi
             if ! grep -q "webdav:" $COMPOSE_FILE; then
                 sed -i '/^networks:/i \
   webdav:\n    image: ghcr.io/mailu/radicale:2024.06\n    restart: always\n    env_file: .env\n    volumes:\n      - ./data:/data\n' $COMPOSE_FILE
@@ -115,6 +121,10 @@ case $CHOICE in
         else
             echo "Disabling WebDAV / Calendar..."
             sed -i 's/WEBDAV=.*/WEBDAV=none/' $ENV_FILE
+            # Revert Roundcube Plugins to standard set (remove calendar/carddav)
+            if grep -q "ROUNDCUBE_PLUGINS=" $ENV_FILE; then
+                sed -i 's/ROUNDCUBE_PLUGINS=.*/ROUNDCUBE_PLUGINS=archive,zipdownload,managesieve,enigma/' $ENV_FILE
+            fi
             echo "Note: Disabling WebDAV requires manual removal of 'webdav:' from docker-compose.yml."
         fi
         ;;
