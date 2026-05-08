@@ -98,6 +98,7 @@ docker compose up -d
 # 7. Install Periphery Agent
 echo -e "${GREEN}Installing Periphery Agent...${NC}"
 curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py | python3 -
+systemctl enable periphery
 
 # 8. Configure Nginx Reverse Proxy
 echo -e "${GREEN}Configuring Nginx reverse proxy...${NC}"
