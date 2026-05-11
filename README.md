@@ -343,6 +343,8 @@ ssh iperamuna "sudo bash /tmp/setup-infisical.sh"
 |---|---|
 | `setup-infisical.sh` | Automated installer: Docker, Nginx, SSL, credentials |
 | `update-smtp.sh` | Script to test and update SMTP credentials in `.env` |
+| `infisical-export.sh` | Helper script to safely export and merge secrets |
+| `infisical-export-usage.md` | Usage guide for the export helper script |
 | `docker-compose.yml` | Local copy of the compose definition |
 | `.env.example` | Reference environment variables |
 

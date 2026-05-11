@@ -35,6 +35,9 @@ sudo -E bash setup-infisical.sh --no-interaction
 ## 📂 File Structure
 
 - **`setup-infisical.sh`**: The automated installer script. Handles Docker setup, `.env` generation, Compose startup, Nginx configuration, and Certbot SSL generation.
+- **`update-smtp.sh`**: Script to test and update SMTP credentials in `.env`.
+- **`infisical-export.sh`**: A helper script to safely export secrets from Infisical and merge them into an existing `.env` file without overwriting unrelated variables.
+- **`infisical-export-usage.md`**: Detailed usage guide for the `infisical-export.sh` script.
 - **`docker-compose.yml`**: A local reference copy of the Docker Compose stack (the setup script generates its own version directly on the target machine).
 - **`.env.example`**: A local reference copy of the required environment variables.
 

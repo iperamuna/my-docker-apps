@@ -86,10 +86,20 @@ Below is the highly recommended workflow for deploying a Laravel application usi
 ### Step 1: Export Secrets from Infisical
 During your build process or deployment script (e.g., in GitHub Actions or a bash script on your server), use the Infisical CLI to securely pull your production secrets into a standard `.env` file.
 
+**Option A: Standard Infisical CLI**
 ```bash
-# Export the production environment secrets to .env
+# Export the production environment secrets to .env (overwrites)
 infisical export --env=prod --format=dotenv > .env
 ```
+
+**Option B: Using the Included Helper Script (Recommended)**
+We provide a helper script (`infisical-export.sh`) that safely exports secrets and *merges* them into your existing `.env` file without overwriting unrelated variables.
+
+```bash
+# Export and safely merge secrets
+./infisical-export.sh --env=prod --target=.env
+```
+*(See the [Infisical Export Usage Guide](./infisical-export-usage.md) for full details, CI/CD examples, and auto-configuring your API URL).*
 
 ### Step 2: Encrypt the `.env` (Optional but recommended for CI/CD)
 If you are building your Laravel artifact in a CI pipeline and shipping it to your server, you should avoid transferring a plaintext `.env` over the wire. Instead, encrypt it natively with Laravel:
