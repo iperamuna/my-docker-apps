@@ -35,7 +35,12 @@ The sidebar links (Client Setup, Help, etc.) are automatically hidden for public
 **Note on UI Overrides**: The layout injects custom templates (`base.html`, `sidebar.html`) for the pixel-perfect hub styling. If you manually tweak templates in `/opt/mailu/overrides/templates/ui/`, ensure you retain `{% block title %}` and `{% block main_action %}` inside `.content-header` so functional buttons (like "Add Domain") and layout titles continue to render properly.
 
 ## 📦 Backups & Maintenance
-- **Backups**: Run `./backup-mailu.sh` to create a timestamped archive of settings and mail data.
+- **Automated Incremental Backups**: We use **Restic + rclone** to push encrypted, deduplicated, and incremental backups directly to Microsoft OneDrive. 
+  - **Setup Cron**: Run `./backup-mailu.sh --setup` to configure an automated schedule (e.g., hourly).
+  - **Manual Run**: `./backup-mailu.sh`
+  - **Restore**: Use `./restore-mailu.sh` to list available snapshots and safely recover data.
+  - **Monitoring**: Use `tail -f -n 5 /opt/mailu/mailu-backup.log` to view the status of the last 5 backup runs. (Detailed verbose logs are stored in `/opt/mailu/backup-verbose.log`).
+  - **Change Password**: Run `./backup-mailu.sh --change-password` to securely rotate your Restic master password. You must manually update the `RESTIC_PASSWORD` variable in the scripts after doing this.
 - **Features**: Use `./manage-mailu-features.sh` to toggle ClamAV (AntiVirus) or Full-Text Search.
 - **DNS Health**: Use `./verify-dns.sh` to check SPF, DKIM, and DMARC status.
 
@@ -153,10 +158,15 @@ Your setup includes:
   ./manage-mailu-features.sh
   ```
 - **Rotate API Token**: `./rotate-api-token.sh`
-- **Backup Entire System**:
+- **Automated OneDrive Backups**:
   ```bash
   chmod +x backup-mailu.sh
-  ./backup-mailu.sh
+  ./backup-mailu.sh --setup
+  ```
+- **Restore from Backup**:
+  ```bash
+  chmod +x restore-mailu.sh
+  ./restore-mailu.sh
   ```
 - **Enable Mass/Bulk Sending (MSS)**: `./enable-mass-email-sending.sh`
 - **Restart**: `docker compose restart`

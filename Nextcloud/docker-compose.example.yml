@@ -1,0 +1,53 @@
+# ── Nextcloud Docker Compose ─────────────────────────────────────────────────
+# This is a template reference for what the setup-nextcloud.sh script generates.
+
+version: "3"
+
+services:
+  db:
+    container_name: nextcloud-db
+    image: postgres:14-alpine
+    restart: always
+    env_file: .env
+    volumes:
+      - ./data/pg_data:/var/lib/postgresql/data
+    networks:
+      - nextcloud_net
+    healthcheck:
+      test: "pg_isready --username=\$\${POSTGRES_USER} && psql --username=\$\${POSTGRES_USER} --list"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: nextcloud-redis
+    restart: always
+    networks:
+      - nextcloud_net
+    volumes:
+      - ./data/redis_data:/data
+
+  app:
+    container_name: nextcloud-app
+    image: nextcloud:latest
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+    ports:
+      - "127.0.0.1:${NEXTCLOUD_APP_PORT:-8888}:80"
+    volumes:
+      - ./data/nextcloud_data:/var/www/html
+    networks:
+      - nextcloud_net
+
+networks:
+  nextcloud_net:
+    driver: bridge
